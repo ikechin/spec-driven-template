@@ -19,6 +19,8 @@ git submodule add <repo-url> services/<service-name>
 git submodule update --init --recursive
 ```
 
+サブモジュール追加後は、Claude セッションで `/generate-submodule-docs <service-name>` スキルを実行することで、`templates/submodule/` 配下の雛形を `services/<name>/` に展開し、サブモジュール内のソースを読んで CLAUDE.md / docs/ の TODO を自動で埋められます。生成ファイルは**サブモジュール側のリポジトリにコミット**してください（親リポではなく）。
+
 ## モノレポ構成で使う場合
 
 このテンプレートはサブモジュール前提ですが、モノレポでも利用可能です。`services/` を以下のように読み替えてください:

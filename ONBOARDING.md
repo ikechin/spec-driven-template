@@ -12,60 +12,107 @@
 
 ---
 
-## 2. コピー手順
+## 2. 導入フロー（推奨）
 
-このテンプレートの以下をプロジェクトルートへコピーしてください:
-
-```bash
-TEMPLATE=/path/to/spec-driven-template
-PROJECT=/path/to/your-project
-
-cp    $TEMPLATE/CLAUDE.md              $PROJECT/CLAUDE.md
-cp -r $TEMPLATE/docs                   $PROJECT/docs
-cp -r $TEMPLATE/.steering              $PROJECT/.steering
-cp -r $TEMPLATE/.claude                $PROJECT/.claude
-cp -r $TEMPLATE/contracts              $PROJECT/contracts
-cp    $TEMPLATE/services/README.md     $PROJECT/services/README.md   # 既存 services/ がある場合のみ
-```
-
-既存ファイルを上書きする前には必ず diff を取り、失われる情報がないか確認してください。
-
----
-
-## 3. Claude に現状分析と TODO 埋めを依頼する
-
-キットをコピーしたら、新しい Claude Code セッションを開き以下のプロンプトを渡してください:
-
-> このプロジェクトの README, package.json, ディレクトリ構造, 既存ドキュメントを読んで、
-> `CLAUDE.md` および `docs/` 配下の `<!-- TODO(claude): ... -->` コメントを埋めてください。
-> 特に以下を現状のコードに合わせて具体化してください:
-> - サービス名 (`service-a/b/c` → 実際のサービス名)
-> - ドメイン用語 (`docs/glossary.md`)
-> - ポート番号・環境変数 (`docs/ENVIRONMENT.md`)
-> - プロダクト要求 (`docs/product-requirements.md`)
-> - システムアーキテクチャ (`docs/system-architecture.md`)
-> 不明点は質問してください。勝手に仮定で埋めないでください。
-
-Claude は TODO を順に処理し、確信が持てない箇所では質問してきます。1 ファイルずつレビュー・承認しながら進めることを推奨します。
-
----
-
-## 4. 初回ステアリングの作成
-
-ドキュメントが揃ったら、最初のステアリングを作成します:
+### Step 1: テンプレリポを clone
 
 ```bash
-mkdir -p .steering/$(date +%Y%m%d)-initial-adoption
-cp .steering/_template/*.md .steering/$(date +%Y%m%d)-initial-adoption/
+git clone <this-template-repo-url> /tmp/spec-driven-template
 ```
 
-または `/plan-task` スキルを使って対話的に生成してください。初回ステアリングは「既存コードの現状整理 + 次に着手するタスク」として書くのがおすすめです。
+### Step 2: bootstrap.sh で採用先プロジェクトにコピー
 
----
+```bash
+cd /tmp/spec-driven-template
+./bootstrap.sh /path/to/your-project
+```
 
-## 5. 以降の開発フロー
+`bootstrap.sh` は以下をコピーします:
 
-以降は [`docs/development-workflow.md`](docs/development-workflow.md) に沿って 6 Phase のサイクルを回してください。
+- `CLAUDE.md`, `ONBOARDING.md`
+- `docs/`, `.steering/`, `.claude/`, `templates/`, `contracts/`
+- `services/README.md`, `e2e/README.md`
+
+既存ファイルがある場合は上書き前に `[y/N/o=overwrite-all/a=skip-all]` で確認します。
+`bootstrap.sh` 自身、テンプレリポの `README.md`、`.git`、`.gitignore` はコピーされません。
+
+### Step 3: 採用先プロジェクトに移動して claude 起動
+
+```bash
+cd /path/to/your-project
+claude
+```
+
+### Step 4: `/analyze-existing-project` で現状分析
+
+Claude セッション内で実行。
+README / package.json / ディレクトリ構造 / 既存 docs を読み取り、`.adoption/analysis.md` に分析レポートを保存します。
+
+### Step 5: `/fill-root-docs` でルート docs/ の TODO 埋め
+
+`.adoption/analysis.md` を元に、以下を埋めます:
+
+- `docs/system-architecture.md`
+- `docs/glossary.md`
+- `docs/ENVIRONMENT.md`
+- ルート `CLAUDE.md` のサービス名 / サブモジュール URL プレースホルダ
+
+既存ファイルがある場合は差分プレビュー → 上書き確認があります。
+
+**触らないファイル:**
+- `docs/product-requirements.md` — 壁打ちで作成（Step 6 参照）
+- `docs/jsox-compliance.md` / `security-guidelines.md` / `service-contracts.md` — 内容維持、TODO バナーのみ削除
+- `templates/` 配下 — サブモジュール用雛形なので別フェーズ
+
+### Step 6: `docs/product-requirements.md` を壁打ちで作成
+
+これはスキル経由ではなく、Claude に直接依頼します:
+
+> docs/product-requirements.md を壁打ちで作成したい。順番に質問してください。
+
+既存ファイルがあり内容が薄ければ、削除してゼロから作り直すことを検討してください。
+
+### Step 7: サブモジュールを追加（サブモジュール構成の場合）
+
+```bash
+git submodule add <repo-url> services/<service-name>
+git submodule update --init --recursive
+```
+
+### Step 8: `/generate-submodule-docs <service-name>` を各サービスに実行
+
+各サブモジュール / サービスディレクトリに対して実行:
+
+```
+/generate-submodule-docs frontend
+/generate-submodule-docs bff
+/generate-submodule-docs backend
+```
+
+`templates/submodule/` 配下の 4 ファイル (CLAUDE.md, docs/functional-design.md, docs/repository-structure.md, docs/development-guidelines.md) を `services/<name>/` にコピーし、サブモジュール内のソースを読んで TODO を埋めます。
+
+### Step 9: サブモジュール側でコミット
+
+**重要**: 生成されたファイルはサブモジュールリポジトリ側にコミットする必要があります。
+
+```bash
+cd services/<name>
+git add CLAUDE.md docs/
+git commit -m "Add service documentation from spec-driven-template"
+git push origin <branch>
+```
+
+### Step 10: 親リポで submodule reference を更新
+
+```bash
+cd <親リポルート>
+git add services/<name>
+git commit -m "Update <name> submodule reference"
+```
+
+### Step 11: 通常の SPEC 駆動開発フローへ
+
+以降は [`docs/development-workflow.md`](docs/development-workflow.md) に沿って 6 Phase のサイクルを回します:
 
 1. `/plan-task` → ステアリング作成
 2. `/review-steering` → ステアリング品質チェック
@@ -76,28 +123,38 @@ cp .steering/_template/*.md .steering/$(date +%Y%m%d)-initial-adoption/
 
 ---
 
-## 6. TIPS: サブモジュール構成でない既存プロジェクトへの適用
+## 3. サブモジュール構成でないプロジェクトの対処
 
 このキットはデフォルトで `services/service-a`, `service-b`, `service-c` を Git サブモジュールとして扱う前提ですが、**モノレポ構成** や **単一パッケージ構成** でも利用できます。
 
 ### モノレポの場合
 
-- `services/service-a/` などのパスを、実際のサービスディレクトリ (例: `packages/web`, `apps/api`) に読み替える
-- `CLAUDE.md` の「サブモジュール初期化」セクションは削除 / 該当しない旨を追記
+- `bootstrap.sh` は問題なく動作します
+- `/generate-submodule-docs <name>` は **モノレポ内のサービスディレクトリにも動作**します。`.gitmodules` に未登録でも `services/<name>/` (または `packages/<name>/`, `apps/<name>/` など読み替え) が存在すれば warning を出した上で雛形を展開します
+- `services/service-a` などのパスを実際のディレクトリ名 (例: `packages/web`, `apps/api`) に読み替えてください
+- ルート `CLAUDE.md` の「サブモジュール初期化」セクションは削除 / 該当しない旨を追記
 - Agent Teams の Agent 分担は **ディレクトリ単位** で行う（同じリポジトリ内でもパスで分ければ並行編集可能）
+- 生成ファイルのコミットは親リポで `git add` するだけで OK（サブモジュール側コミットは不要）
 
 ### 単一パッケージの場合
 
 - Agent Teams は原則不要。`CLAUDE.md` のパターン 3（単一 Agent）を使う
 - ステアリング + `/plan-task` / `/review-implementation` / `/retrospective` のサイクルだけでも十分に価値がある
+- `/generate-submodule-docs` はスキップしてよい
 
 ---
 
-## 7. 次のアクション
+## 4. 次のアクション チェックリスト
 
-- [ ] このキットをプロジェクトにコピー
-- [ ] Claude に TODO 埋めを依頼
-- [ ] 生成されたドキュメントをレビュー・承認
-- [ ] 初回ステアリングを作成
+- [ ] テンプレリポを clone
+- [ ] `./bootstrap.sh /path/to/your-project` を実行
+- [ ] 採用先で `claude` 起動
+- [ ] `/analyze-existing-project`
+- [ ] `/fill-root-docs`
+- [ ] `docs/product-requirements.md` を壁打ちで作成
+- [ ] サブモジュール追加 (該当する場合)
+- [ ] `/generate-submodule-docs <name>` を各サービスに実行
+- [ ] 各サブモジュールで生成ファイルをコミット
+- [ ] 親リポで submodule reference をコミット
 - [ ] `docs/development-workflow.md` を読んでワークフローを把握
 - [ ] `docs/lessons-learned.md` を読んで過去の失敗パターンを学ぶ
