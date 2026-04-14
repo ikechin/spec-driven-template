@@ -69,20 +69,43 @@ cd /path/to/your-project
 claude
 ```
 
-### Step 3.5: Agent Teams 環境変数を設定（実装フェーズ前に必須）
+### Step 3.5: `.claude/settings.json` を確認（テンプレ同梱済み）
 
-Phase 2 以降で Agent Teams 機能を使うため、`.claude/settings.json` に環境変数を追加してください:
+bootstrap.sh によって `.claude/settings.json` が既に配置されています。内容:
 
 ```json
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": ["Bash(*)", "Write(*)", "Edit(*)"]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/shells/statusline.sh"
   }
 }
 ```
 
-設定後は **Claude Code を再起動** してください（`claude` を再実行 or VS Code を再読込）。
-この設定がないと `TeamCreate` / `team_name` 指定の Agent spawn が機能せず、ただの並列バックグラウンド subagent になります（詳細は `docs/lessons-learned.md` の "Phase 2 で何が間違っていたか"）。
+含まれるもの:
+- **`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`** — Agent Teams 機能を有効化（必須）
+- **`permissions.allow`** — Agent Teams が自律実行するために必要な権限。デフォルトは Bash/Write/Edit のフル許可
+- **`statusLine`** — `.claude/shells/statusline.sh` によるステータスライン表示（モデル / コンテキスト使用率 / サービス / ブランチ / 最新ステアリング）
+
+⚠️ **セキュリティに関する注意**:
+`Bash(*)` はフル許可で強力です。組織のセキュリティポリシーに応じて、以下のように絞ることを検討してください:
+
+```json
+"allow": [
+  "Bash(git:*)", "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)",
+  "Bash(go:*)", "Bash(make:*)", "Bash(docker:*)", "Bash(jq:*)",
+  "Write(*)", "Edit(*)"
+]
+```
+
+設定変更後は **Claude Code を再起動** してください（`claude` を再実行 or VS Code を再読込）。
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` がないと `TeamCreate` / `team_name` 指定の Agent spawn が機能せず、ただの並列バックグラウンド subagent になります（詳細は `docs/lessons-learned.md` の "Phase 2 で何が間違っていたか"）。
 
 ### Step 4: `/analyze-existing-project` で現状分析
 
