@@ -36,12 +36,53 @@ cd /tmp/spec-driven-template
 既存ファイルがある場合は上書き前に `[y/N/o=overwrite-all/a=skip-all]` で確認します。
 `bootstrap.sh` 自身、テンプレリポの `README.md`、`.git`、`.gitignore` はコピーされません。
 
+**コピー後のディレクトリ構造（例）:**
+
+```
+your-project/
+├── CLAUDE.md
+├── ONBOARDING.md
+├── docs/                   # ルート永続的ドキュメント
+├── .steering/              # ステアリング履歴 + _template/
+├── .claude/skills/         # 採用スキル + 開発スキル
+├── templates/submodule/    # サブモジュール用雛形（generate-submodule-docs が使う）
+├── contracts/              # API 契約 (openapi/proto/types)
+├── services/
+│   └── README.md           # 空のディレクトリ。サブモジュール追加で埋める (Step 6)
+└── e2e/README.md
+```
+
+> **既存 CLAUDE.md / docs がある場合**
+> bootstrap.sh の上書き確認で `N` または `a=skip-all` を選んで温存してください。
+> 採用完了後に手動マージするのが安全です。差分確認の例:
+> ```bash
+> cp CLAUDE.md .adoption/CLAUDE.md.backup  # 事前バックアップ
+> ./bootstrap.sh .                         # 上書きを y で承認
+> diff .adoption/CLAUDE.md.backup CLAUDE.md
+> # 既存内容のうち残したい部分を手動で template に統合
+> ```
+
 ### Step 3: 採用先プロジェクトに移動して claude 起動
 
 ```bash
 cd /path/to/your-project
 claude
 ```
+
+### Step 3.5: Agent Teams 環境変数を設定（実装フェーズ前に必須）
+
+Phase 2 以降で Agent Teams 機能を使うため、`.claude/settings.json` に環境変数を追加してください:
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+設定後は **Claude Code を再起動** してください（`claude` を再実行 or VS Code を再読込）。
+この設定がないと `TeamCreate` / `team_name` 指定の Agent spawn が機能せず、ただの並列バックグラウンド subagent になります（詳細は `docs/lessons-learned.md` の "Phase 2 で何が間違っていたか"）。
 
 ### Step 4: `/analyze-existing-project` で現状分析
 
@@ -150,7 +191,9 @@ git commit -m "Update <name> submodule reference"
 
 - [ ] テンプレリポを clone
 - [ ] `./bootstrap.sh /path/to/your-project` を実行
-- [ ] 採用先で `claude` 起動
+- [ ] 既存 CLAUDE.md / docs があればバックアップ・マージ方針を決定
+- [ ] `.claude/settings.json` に `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` を追加
+- [ ] 採用先で `claude` 起動（再起動）
 - [ ] `/analyze-existing-project`
 - [ ] `/fill-root-docs`
 - [ ] サブモジュール追加 (該当する場合)

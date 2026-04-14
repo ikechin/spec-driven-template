@@ -99,4 +99,11 @@ docker compose logs <db-service-name>
 - [ ] `.claude/settings.json` に `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` が設定済み
 - [ ] Claude Code を再起動済み
 
-<!-- TODO(claude): サービスごとのセットアップチェック項目を追加 -->
+<!-- TODO(claude): サービスごとのセットアップチェック項目を追加
+     例:
+     ### service-a
+     - [ ] `.env` に DB_HOST / DB_PORT / DB_NAME を設定済み
+     - [ ] テストユーザー環境変数 (SERVICE_A_TEST_USER / SERVICE_A_TEST_PASSWORD) を設定済み
+     - [ ] ポート 3001 が空いているか確認済み
+     - [ ] `npm install` (または該当パッケージマネージャ) 完了
+-->

@@ -4,6 +4,16 @@
      `/generate-submodule-docs <service-name>` 実行時に Claude が以下の TODO を埋めます。
      親リポジトリの `CLAUDE.md` のルールを継承し、サービス固有の事項のみをここに記述してください。 -->
 
+<!-- 役割決定時のガイダンス:
+     親プロジェクトの `CLAUDE.md` および `docs/system-architecture.md` を確認して、
+     このサービスのロール (frontend / BFF / backend / api-gateway / worker など) を特定し、
+     以下の項目を埋めてください:
+       - サービス概要 (このファイル)
+       - Agent Teams 参加時の関連 Agent リスト
+       - 技術スタック (実コードから抽出)
+     汎用名 service-a/b/c を実名 (例: web / api / order-service) に置き換える場合、
+     親リポの該当箇所も同期して更新する必要があります。 -->
+
 ## サービス概要
 
 <!-- TODO(claude): サービスの責務を 1-2 文で記述。
